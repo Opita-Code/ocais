@@ -1,0 +1,66 @@
+{
+  "name": "@opita/ocais",
+  "version": "1.0.0",
+  "description": "OCAIS — Opita Code AI Stream. Lightweight AI streaming SDK for AWS Lambda. Zero deps, TypeScript-first, provider-agnostic.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./providers": {
+      "import": "./dist/providers/openai-compatible.js",
+      "types": "./dist/providers/openai-compatible.d.ts"
+    },
+    "./lambda": {
+      "import": "./dist/lambda/sse-writer.js",
+      "types": "./dist/lambda/sse-writer.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "ai",
+    "streaming",
+    "aws-lambda",
+    "sse",
+    "openai",
+    "deepseek",
+    "gemini",
+    "typescript",
+    "serverless"
+  ],
+  "author": "Opita Code <dev@opitacode.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Opita-Code/ocais.git"
+  },
+  "homepage": "https://github.com/Opita-Code/ocais#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "peerDependencies": {
+    "zod": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    }
+  }
+}
