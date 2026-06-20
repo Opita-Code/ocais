@@ -47,6 +47,7 @@ export function openai(options: OpenAIProviderOptions): Provider {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
+        signal: req.signal,
       });
 
       if (!response.ok) {
@@ -188,6 +189,7 @@ export function openai(options: OpenAIProviderOptions): Provider {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
+        signal: req.signal,
       });
 
       if (!response.ok) {
