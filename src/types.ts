@@ -99,6 +99,11 @@ export interface ProviderRequest {
   temperature?: number;
   maxTokens?: number;
   responseFormat?: { type: "json_object" | "json_schema"; schema?: unknown };
+  /**
+   * AbortSignal to cancel the in-flight HTTP request. Standard web API.
+   * Providers should pass this to `fetch()`.
+   */
+  signal?: AbortSignal;
 }
 
 /** Provider-level message format (OpenAI-compatible) */
@@ -145,8 +150,30 @@ export interface StreamTextOptions {
   tools?: Record<string, ToolDefinition>;
   temperature?: number;
   maxTokens?: number;
-  /** Max tool execution rounds (for server-side tools). Default: 1 */
+  /**
+   * Max tool execution rounds (for server-side tools). Default: 5
+   * The loop runs while `step < maxSteps` AND there are pending tool calls
+   * with `execute` functions.
+   */
   maxSteps?: number;
+  /**
+   * AbortSignal to cancel the operation. When aborted, throws OCAISAbortError.
+   * Standard web API — works with any AbortController.
+   */
+  signal?: AbortSignal;
+  /**
+   * Timeout in milliseconds. When exceeded, throws OCAISTimeoutError.
+   * Implemented internally via AbortController — does not conflict with `signal`.
+   */
+  timeoutMs?: number;
+  /**
+   * Observability hooks. Called at key lifecycle points. All hooks are optional.
+   * For a richer event-based API, see `streamTextWithEvents`.
+   */
+  onStart?: (ctx: StartContext) => void;
+  onComplete?: (ctx: CompleteContext) => void;
+  onError?: (ctx: ErrorContext) => void;
+  onAbort?: () => void;
 }
 
 export interface GenerateObjectOptions {
@@ -156,6 +183,53 @@ export interface GenerateObjectOptions {
   prompt: string;
   schema: unknown; // Zod schema — we call .parse() on the result
   temperature?: number;
+  /**
+   * AbortSignal to cancel the operation. When aborted, throws OCAISAbortError.
+   */
+  signal?: AbortSignal;
+  /**
+   * Timeout in milliseconds. When exceeded, throws OCAISTimeoutError.
+   */
+  timeoutMs?: number;
+  onStart?: (ctx: StartContext) => void;
+  onComplete?: (ctx: CompleteContext) => void;
+  onError?: (ctx: ErrorContext) => void;
+  onAbort?: () => void;
+}
+
+// ─── Observability Contexts ──────────────────────────────────────
+
+export interface StartContext {
+  model: string;
+  /** Names of tools available, if any. */
+  toolNames?: string[];
+  /** Request timestamp (ms since epoch). */
+  startedAt: number;
+}
+
+export interface CompleteContext {
+  model: string;
+  /** Number of LLM round-trips performed. */
+  steps: number;
+  /** Total elapsed milliseconds. */
+  durationMs: number;
+  /** Total token usage (if reported by provider). */
+  usage?: Usage;
+  /** Request timestamp (ms since epoch). */
+  startedAt: number;
+}
+
+export interface ErrorContext {
+  error: Error;
+  step: number;
+  /** Request timestamp (ms since epoch). */
+  startedAt: number;
+}
+
+export interface Usage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
 }
 
 export interface GenerateObjectResult<T = unknown> {

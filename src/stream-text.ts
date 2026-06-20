@@ -3,6 +3,12 @@
  *
  * Core streaming function. Calls the provider's streaming API and yields
  * typed StreamChunks. Supports server-side tool execution with multi-step loops.
+ *
+ * Cancellation: pass `signal` (AbortSignal) and/or `timeoutMs`. Both throw
+ * typed errors (OCAISAbortError, OCAISTimeoutError).
+ *
+ * Observability: pass `onStart`, `onComplete`, `onError`, `onAbort` hooks.
+ * For a richer event-based API, see `streamTextWithEvents`.
  */
 
 import type {
@@ -14,7 +20,9 @@ import type {
   ProviderContentPart,
   ContentPart,
   ToolCall,
+  Usage,
 } from "./types.js";
+import { OCAISAbortError, OCAISTimeoutError } from "./errors.js";
 
 /**
  * Convert SDK messages to provider-level messages.
@@ -30,8 +38,6 @@ function toProviderMessages(system: string | undefined, messages: Message[]): Pr
   for (const msg of messages) {
     switch (msg.role) {
       case "system":
-        // System messages from the array are promoted to the system param.
-        // If caller already set `system`, this is a secondary system message.
         result.push({ role: "system", content: msg.content });
         break;
 
@@ -39,11 +45,9 @@ function toProviderMessages(system: string | undefined, messages: Message[]): Pr
         if (typeof msg.content === "string") {
           result.push({ role: "user", content: msg.content });
         } else {
-          // Multimodal content parts
           const parts: ProviderContentPart[] = (msg.content as ContentPart[]).map((part) => {
             if (part.type === "text") return { type: "text" as const, text: part.text };
             if (part.type === "image") return { type: "image_url" as const, image_url: { url: part.image } };
-            // File parts: embed as text
             return { type: "text" as const, text: `[File: ${part.mediaType}]\n${part.data}` };
           });
           result.push({ role: "user", content: parts });
@@ -95,6 +99,44 @@ function toProviderTools(tools: StreamTextOptions["tools"]): ProviderTool[] | un
 }
 
 /**
+ * Combine user's AbortSignal with an internal timeout-based abort.
+ * Both throw the same internal signal when either fires.
+ */
+function createCombinedSignal(userSignal: AbortSignal | undefined, timeoutMs: number | undefined): {
+  signal: AbortSignal;
+  cleanup: () => void;
+} {
+  const controller = new AbortController();
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  let userHandler: (() => void) | undefined;
+
+  if (userSignal) {
+    if (userSignal.aborted) {
+      controller.abort();
+    } else {
+      userHandler = () => controller.abort();
+      userSignal.addEventListener("abort", userHandler, { once: true });
+    }
+  }
+
+  if (timeoutMs !== undefined) {
+    timeoutHandle = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
+  }
+
+  return {
+    signal: controller.signal,
+    cleanup: () => {
+      if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+      if (userHandler && userSignal) {
+        userSignal.removeEventListener("abort", userHandler);
+      }
+    },
+  };
+}
+
+/**
  * Stream text from an AI provider.
  *
  * Returns an AsyncIterable of StreamChunks. If tools with `execute` functions
@@ -124,12 +166,25 @@ export async function* streamText(options: StreamTextOptions): AsyncIterable<Str
     tools,
     temperature,
     maxTokens,
-    maxSteps = 1,
+    maxSteps = 5,
+    signal: userSignal,
+    timeoutMs,
+    onStart,
+    onComplete,
+    onError,
+    onAbort,
   } = options;
 
-  const providerTools = toProviderTools(tools);
+  const startedAt = Date.now();
+  const { signal: combinedSignal, cleanup } = createCombinedSignal(userSignal, timeoutMs);
 
-  // Check if any tools have server-side execute functions
+  onStart?.({
+    model,
+    toolNames: tools ? Object.keys(tools) : undefined,
+    startedAt,
+  });
+
+  const providerTools = toProviderTools(tools);
   const serverTools = tools
     ? Object.entries(tools).filter(([, def]) => def.execute)
     : [];
@@ -137,83 +192,136 @@ export async function* streamText(options: StreamTextOptions): AsyncIterable<Str
 
   let currentMessages = [...messages];
   let step = 0;
+  let totalUsage: Usage | undefined;
+  let aborted = false;
 
-  while (step < maxSteps) {
-    step++;
+  try {
+    while (step < maxSteps) {
+      step++;
 
-    const providerMessages = toProviderMessages(system, currentMessages);
-
-    const pendingToolCalls: ToolCall[] = [];
-
-    for await (const chunk of provider.streamChatCompletion({
-      model,
-      messages: providerMessages,
-      tools: providerTools,
-      temperature,
-      maxTokens,
-    })) {
-      // Collect tool calls for potential server-side execution
-      if (chunk.type === "tool-call" && hasServerTools) {
-        pendingToolCalls.push({
-          toolCallId: chunk.toolCallId,
-          toolName: chunk.toolName,
-          args: chunk.args,
-        });
+      if (combinedSignal.aborted) {
+        aborted = true;
+        break;
       }
 
-      // Always yield chunks to the consumer
-      yield chunk;
-    }
+      const providerMessages = toProviderMessages(system, currentMessages);
+      const pendingToolCalls: ToolCall[] = [];
 
-    // If no server-side tool calls to execute, we're done
-    if (pendingToolCalls.length === 0 || !hasServerTools) {
-      break;
-    }
+      try {
+        for await (const chunk of provider.streamChatCompletion({
+          model,
+          messages: providerMessages,
+          tools: providerTools,
+          temperature,
+          maxTokens,
+          signal: combinedSignal,
+        })) {
+          if (combinedSignal.aborted) {
+            aborted = true;
+            break;
+          }
 
-    // Execute server-side tools and add results to conversation
-    const assistantMsg: Message = {
-      role: "assistant",
-      content: "",
-      toolCalls: pendingToolCalls,
-    };
-    currentMessages.push(assistantMsg);
+          if (chunk.type === "usage") {
+            totalUsage = {
+              promptTokens: chunk.promptTokens,
+              completionTokens: chunk.completionTokens,
+              totalTokens: chunk.totalTokens,
+            };
+          }
 
-    for (const tc of pendingToolCalls) {
-      const toolDef = tools?.[tc.toolName];
-      if (toolDef?.execute) {
-        try {
-          const result = await toolDef.execute(tc.args);
-          const resultMsg: Message = {
-            role: "tool",
-            toolCallId: tc.toolCallId,
-            content: JSON.stringify(result),
-          };
-          currentMessages.push(resultMsg);
+          if (chunk.type === "tool-call" && hasServerTools) {
+            pendingToolCalls.push({
+              toolCallId: chunk.toolCallId,
+              toolName: chunk.toolName,
+              args: chunk.args,
+            });
+          }
 
-          yield {
-            type: "tool-result",
-            toolCallId: tc.toolCallId,
-            toolName: tc.toolName,
-            result,
-          };
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : "Tool execution failed";
-          currentMessages.push({
-            role: "tool",
-            toolCallId: tc.toolCallId,
-            content: JSON.stringify({ error: errorMsg }),
-          });
+          yield chunk;
+        }
+      } catch (err) {
+        if (combinedSignal.aborted) {
+          aborted = true;
+          break;
+        }
+        throw err;
+      }
 
-          yield {
-            type: "tool-result",
-            toolCallId: tc.toolCallId,
-            toolName: tc.toolName,
-            result: { error: errorMsg },
-          };
+      if (pendingToolCalls.length === 0 || !hasServerTools) {
+        break;
+      }
+
+      // Execute server-side tools
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: "",
+        toolCalls: pendingToolCalls,
+      };
+      currentMessages.push(assistantMsg);
+
+      for (const tc of pendingToolCalls) {
+        const toolDef = tools?.[tc.toolName];
+        if (toolDef?.execute) {
+          try {
+            const result = await toolDef.execute(tc.args);
+            const resultMsg: Message = {
+              role: "tool",
+              toolCallId: tc.toolCallId,
+              content: JSON.stringify(result),
+            };
+            currentMessages.push(resultMsg);
+
+            yield {
+              type: "tool-result",
+              toolCallId: tc.toolCallId,
+              toolName: tc.toolName,
+              result,
+            };
+          } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : "Tool execution failed";
+            currentMessages.push({
+              role: "tool",
+              toolCallId: tc.toolCallId,
+              content: JSON.stringify({ error: errorMsg }),
+            });
+
+            yield {
+              type: "tool-result",
+              toolCallId: tc.toolCallId,
+              toolName: tc.toolName,
+              result: { error: errorMsg },
+            };
+          }
         }
       }
     }
 
-    // Continue loop — provider will see tool results and continue generating
+    if (aborted) {
+      onAbort?.();
+      if (userSignal?.aborted) {
+        throw new OCAISAbortError();
+      }
+      if (timeoutMs !== undefined) {
+        const elapsedMs = Date.now() - startedAt;
+        throw new OCAISTimeoutError(timeoutMs, elapsedMs);
+      }
+    }
+
+    onComplete?.({
+      model,
+      steps: step,
+      durationMs: Date.now() - startedAt,
+      usage: totalUsage,
+      startedAt,
+    });
+  } catch (err) {
+    onError?.({
+      error: err instanceof Error ? err : new Error(String(err)),
+      step,
+      startedAt,
+    });
+    throw err;
+  } finally {
+    cleanup();
   }
 }

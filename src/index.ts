@@ -18,6 +18,16 @@ export { google } from "./providers/google.js";
 // Lambda helpers
 export { createSSEWriter } from "./lambda/sse-writer.js";
 
+// Errors
+export {
+  OCAISError,
+  OCAISAbortError,
+  OCAISTimeoutError,
+  OCAISParseError,
+  OCAISToolError,
+  OCAISProviderError,
+} from "./errors.js";
+
 // Types
 export type {
   // Messages
@@ -35,6 +45,7 @@ export type {
 
   // Stream
   StreamChunk,
+  Usage,
 
   // Provider
   Provider,
@@ -47,7 +58,10 @@ export type {
   GenerateObjectOptions,
   GenerateObjectResult,
 
-  // Lambda
+  // Observability
+  StartContext,
+  CompleteContext,
+  ErrorContext,
 } from "./types.js";
 
 export type { SSEWriter, SSEWritableStream } from "./lambda/sse-writer.js";
