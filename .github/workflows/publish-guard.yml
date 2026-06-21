@@ -1,0 +1,66 @@
+name: publish-guard
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - 'package.json'
+      - '.github/workflows/publish-guard.yml'
+  workflow_dispatch:
+
+jobs:
+  verify-tarball:
+    name: Verify dist/ in npm tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Pack
+        run: npm pack
+
+      - name: Verify dist/ in tarball
+        run: |
+          set -e
+          TGZ=$(ls opita-ocais-*.tgz | head -n 1)
+          echo "Inspecting $TGZ"
+          tar -tzf "$TGZ"
+          if ! tar -tzf "$TGZ" | grep -q "package/dist/index.js"; then
+            echo "ERROR: dist/index.js missing from tarball"
+            exit 1
+          fi
+          if ! tar -tzf "$TGZ" | grep -q "package/dist/index.d.ts"; then
+            echo "ERROR: dist/index.d.ts missing from tarball"
+            exit 1
+          fi
+          if ! tar -tzf "$TGZ" | grep -q "package/dist/lambda/sse-writer.js"; then
+            echo "ERROR: dist/lambda/sse-writer.js missing from tarball"
+            exit 1
+          fi
+          if ! tar -tzf "$TGZ" | grep -q "package/dist/providers/openai-compatible.js"; then
+            echo "ERROR: dist/providers/openai-compatible.js missing from tarball"
+            exit 1
+          fi
+          echo "OK: dist/ present in tarball"
+
+      - name: Upload tarball artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocais-tarball
+          path: opita-ocais-*.tgz
+          if-no-files-found: error
