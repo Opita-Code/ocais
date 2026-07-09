@@ -1,6 +1,6 @@
 {
   "name": "@opita/ocais",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "OCAIS — Opita Code AI Stream. Lightweight AI streaming SDK for AWS Lambda. Zero deps, TypeScript-first, provider-agnostic.",
   "type": "module",
   "main": "./dist/index.js",
@@ -9,6 +9,10 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./auth": {
+      "import": "./dist/auth/index.js",
+      "types": "./dist/auth/index.d.ts"
     },
     "./providers": {
       "import": "./dist/providers/openai-compatible.js",
@@ -27,7 +31,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types tests/*.test.ts",
+    "test": "node --test --experimental-strip-types tests/*.test.ts tests/auth/*.test.ts",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "prepack": "npm run clean && npm run build",
     "prepublishOnly": "npm test && npm run prepack"
@@ -41,7 +45,13 @@
     "deepseek",
     "gemini",
     "typescript",
-    "serverless"
+    "serverless",
+    "auth",
+    "magic-link",
+    "jwt",
+    "sealed-cookies",
+    "argon2id",
+    "rate-limit"
   ],
   "author": "Opita Code <dev@opitacode.com>",
   "license": "MIT",
@@ -59,10 +69,18 @@
     "zod": "^3.23.0"
   },
   "peerDependencies": {
-    "zod": ">=3.0.0"
+    "zod": ">=3.0.0",
+    "@noble/ed25519": ">=2.0.0",
+    "@node-rs/argon2": ">=2.0.0"
   },
   "peerDependenciesMeta": {
     "zod": {
+      "optional": true
+    },
+    "@noble/ed25519": {
+      "optional": true
+    },
+    "@node-rs/argon2": {
       "optional": true
     }
   }
