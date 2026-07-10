@@ -4,14 +4,13 @@
  * Node 24's --experimental-strip-types strips types but does NOT resolve
  * .js extension imports to .ts files. This loader adds that resolution.
  * 
- * Usage: node --import ./tests/resolve-js-to-ts.mjs --test ...
+ * Usage: node --experimental-loader ./tests/resolve-js-to-ts.mjs --experimental-strip-types --test ...
  */
 import { readFileSync } from 'node:fs';
 import { resolve as pathResolve, extname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export async function resolve(specifier, context, nextResolve) {
-  // Only intercept local imports (relative or absolute paths)
   if (specifier.startsWith('./') || specifier.startsWith('../') || specifier.startsWith('file://') || specifier.startsWith('/')) {
     const baseUrl = context.parentURL || pathToFileURL(process.cwd() + '/').href;
     const basePath = fileURLToPath(baseUrl);
@@ -26,7 +25,6 @@ export async function resolve(specifier, context, nextResolve) {
       resolvedPath = pathResolve(baseDir, specifier);
     }
 
-    // If importing .js file, try .ts version first
     if (resolvedPath.endsWith('.js')) {
       const tsPath = resolvedPath.replace(/\.js$/, '.ts');
       try {
@@ -37,6 +35,5 @@ export async function resolve(specifier, context, nextResolve) {
       }
     }
   }
-  
   return nextResolve(specifier, context);
 }

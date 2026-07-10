@@ -35,7 +35,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types tests/*.test.ts tests/auth/*.test.ts",
+    "test": "node --experimental-loader ./tests/resolve-js-to-ts.mjs --experimental-strip-types --test tests/*.test.ts tests/auth/*.test.ts",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "prepare": "npm run build",
     "prepack": "npm run clean && npm run build",
