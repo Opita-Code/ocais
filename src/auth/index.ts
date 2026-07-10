@@ -69,6 +69,7 @@ export {
   nowSec,
   futureSec,
   decodeJWTUnsafe,
+  rs256VerifyJWK,
 } from './jwt.js';
 
 // Cookie

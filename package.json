@@ -18,6 +18,10 @@
       "import": "./dist/providers/openai-compatible.js",
       "types": "./dist/providers/openai-compatible.d.ts"
     },
+    "./auth/cognito": {
+      "import": "./dist/auth/cognito.js",
+      "types": "./dist/auth/cognito.d.ts"
+    },
     "./lambda": {
       "import": "./dist/lambda/sse-writer.js",
       "types": "./dist/lambda/sse-writer.d.ts"

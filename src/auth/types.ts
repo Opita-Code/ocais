@@ -199,8 +199,11 @@ export interface JWTClaims {
  *   service signs and verifies.
  * - EdDSA: Ed25519, asymmetric. Use when multiple services need to verify
  *   without holding the signing key.
+ * - RS256: RSASSA-PKCS1-v1_5 with SHA-256, asymmetric. Typically used by
+ *   external providers (Cognito, Google, Auth0) that publish JWKS endpoints.
+ *   Supported via globalThis.crypto.subtle (no deps).
  */
-export type JWTAlgorithm = "HS256" | "EdDSA";
+export type JWTAlgorithm = "HS256" | "EdDSA" | "RS256";
 
 /**
  * Options for `signJWT`.
@@ -285,13 +288,13 @@ export interface VerifyJWTOptions {
  * A single key in a JWKS (JSON Web Key Set) document.
  */
 export interface JWK {
-  /** Key type. "oct" for HS256, "OKP" for EdDSA. */
-  kty: "oct" | "OKP";
+  /** Key type. "oct" for HS256, "OKP" for EdDSA, "RSA" for RS256. */
+  kty: "oct" | "OKP" | "RSA";
 
   /** Key ID. Matches the `kid` JWT header. */
   kid: string;
 
-  /** Algorithm. "HS256" or "EdDSA". */
+  /** Algorithm. "HS256", "EdDSA", or "RS256". */
   alg: JWTAlgorithm;
 
   /** Use. Always "sig" for OCAIS. */
@@ -302,6 +305,12 @@ export interface JWK {
 
   /** For OKP keys: base64url-encoded public key. */
   x?: string;
+
+  /** For RSA keys: base64url-encoded modulus. */
+  n?: string;
+
+  /** For RSA keys: base64url-encoded exponent (typically "AQAB"). */
+  e?: string;
 }
 
 /**

@@ -78,6 +78,80 @@ async function hs256Verify(
   return constantTimeEqual(computed, signature);
 }
 
+// ─── RS256 implementation (zero-dep via Web Crypto API) ───────────────
+
+/**
+ * Signs data with an RSA private key (RSASSA-PKCS1-v1_5 with SHA-256).
+ * Returns the signature as base64url.
+ */
+async function rs256Sign(
+  signingInput: string,
+  privateKey: Uint8Array,
+): Promise<string> {
+  const cryptoKey = await globalThis.crypto.subtle.importKey(
+    "pkcs8",
+    privateKey as BufferSource,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await globalThis.crypto.subtle.sign(
+    { name: "RSASSA-PKCS1-v1_5" },
+    cryptoKey,
+    new TextEncoder().encode(signingInput) as BufferSource,
+  );
+  return base64UrlEncode(new Uint8Array(sig));
+}
+
+/**
+ * Verifies an RS256 signature using the RSA public key (JWK format).
+ * Uses globalThis.crypto.subtle — no deps.
+ */
+async function rs256Verify(
+  signingInput: string,
+  signature: Uint8Array,
+  publicKey: Uint8Array,
+): Promise<boolean> {
+  const cryptoKey = await globalThis.crypto.subtle.importKey(
+    "spki",
+    publicKey as BufferSource,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  return globalThis.crypto.subtle.verify(
+    { name: "RSASSA-PKCS1-v1_5" },
+    cryptoKey,
+    signature as BufferSource,
+    new TextEncoder().encode(signingInput) as BufferSource,
+  );
+}
+
+/**
+ * Verifies an RS256 signature using a JWK-formatted RSA public key.
+ * Use this when the key comes from an external JWKS endpoint (Cognito,
+ * Auth0, Google) in JWK format rather than raw SPKI bytes.
+ */
+export async function rs256VerifyJWK(
+  signingInput: string,
+  signature: Uint8Array,
+  jwk: { n: string; e: string },
+): Promise<boolean> {
+  const cryptoKey = await globalThis.crypto.subtle.importKey(
+    "jwk",
+    { kty: "RSA", n: jwk.n, e: jwk.e, alg: "RS256" },
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  return globalThis.crypto.subtle.verify(
+    { name: "RSASSA-PKCS1-v1_5" },
+    cryptoKey,
+    signature as BufferSource,
+    new TextEncoder().encode(signingInput) as BufferSource,
+  );
+}
+
 // ─── EdDSA implementation (optional @noble/ed25519) ─────────────────────
 
 /**
@@ -170,7 +244,6 @@ export async function signJWT(
   // Resolve signing key
   let keyId: string;
   let secret: Uint8Array | undefined;
-  let publicKey: Uint8Array | undefined;
 
   if (options.keyId && options.secret) {
     keyId = options.keyId;
@@ -182,7 +255,6 @@ export async function signJWT(
     }
     keyId = options.keyId;
     secret = stored.secretOrPrivate;
-    publicKey = stored.publicKey;
   } else if (options.secret) {
     keyId = "manual";
     secret = options.secret;
@@ -193,7 +265,6 @@ export async function signJWT(
       throw new AuthTokenInvalidError(`Active key not found: ${keyId}`);
     }
     secret = stored.secretOrPrivate;
-    publicKey = stored.publicKey;
   }
 
   if (!secret) {
@@ -226,13 +297,11 @@ export async function signJWT(
     signatureB64 = await hs256Sign(signingInput, secret);
   } else if (alg === "EdDSA") {
     const ed = await getEd25519();
-    if (!publicKey) {
-      // For EdDSA, we sign with the private key directly.
-      signatureB64 = base64UrlEncode(await ed.sign(signingInput, secret));
-    } else {
-      // We have both: sign with private, ignore public.
-      signatureB64 = base64UrlEncode(await ed.sign(signingInput, secret));
-    }
+    // For EdDSA, we sign with the private key directly.
+    signatureB64 = base64UrlEncode(await ed.sign(signingInput, secret));
+  } else if (alg === "RS256") {
+    // RS256 signs with the private key in PKCS#8 format.
+    signatureB64 = await rs256Sign(signingInput, secret);
   } else {
     throw new AuthError("AUTH_CONFIG", `Unsupported algorithm: ${alg}`);
   }
@@ -337,6 +406,11 @@ export async function verifyJWT(
       throw new AuthTokenInvalidError("EdDSA key has no public key");
     }
     signatureValid = ed.verify(signature, signingInput, key.publicKey);
+  } else if (header.alg === "RS256") {
+    if (!key.publicKey) {
+      throw new AuthTokenInvalidError("RS256 key has no public key");
+    }
+    signatureValid = await rs256Verify(signingInput, signature, key.publicKey);
   } else {
     // Should never reach here (header.alg is in algorithms list)
     throw new AuthTokenInvalidError(`Unsupported algorithm: ${header.alg}`);
@@ -393,8 +467,10 @@ export async function verifyJWT(
  * Generates a new signing key, marks the previous active key as deprecated
  * (24h grace period), and returns the new key ID.
  *
+ * If no active key exists (first rotation), `deprecatedKeyId` is null.
+ *
  * Implementations should:
- * 1. Generate a new 32-byte secret (or 32-byte EdDSA private key).
+ * 1. Generate a new 32-byte secret (or 32-byte EdDSA private key, or RSA keypair).
  * 2. Store the new key as active.
  * 3. Mark the old key as deprecated (still valid for verify, but not for sign).
  *
@@ -403,10 +479,16 @@ export async function verifyJWT(
 export async function rotateKeys(options: {
   storage: AuthStorage;
   alg?: JWTAlgorithm;
-}): Promise<{ newKeyId: string; deprecatedKeyId: string }> {
+}): Promise<{ newKeyId: string; deprecatedKeyId: string | null }> {
   const { storage, alg = "HS256" } = options;
 
-  const oldKeyId = await storage.getActiveKeyId();
+  let oldKeyId: string | null;
+  try {
+    oldKeyId = await storage.getActiveKeyId();
+  } catch {
+    // No active key yet (first rotation). This is fine.
+    oldKeyId = null;
+  }
   const newKeyId = `key-${Date.now()}-${randomBase64Url(4)}`;
 
   let secretOrPrivate: Uint8Array;
@@ -423,6 +505,21 @@ export async function rotateKeys(options: {
     const derivedPublicKey = await ed.getPublicKeyAsync(privateKey);
     secretOrPrivate = privateKey;
     publicKey = derivedPublicKey;
+  } else if (alg === "RS256") {
+    // Generate a 2048-bit RSA keypair
+    const keyPair = await globalThis.crypto.subtle.generateKey(
+      { name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+      true,
+      ["sign", "verify"],
+    );
+    // Export private key as PKCS#8 DER bytes
+    secretOrPrivate = new Uint8Array(
+      await globalThis.crypto.subtle.exportKey("pkcs8", keyPair.privateKey),
+    );
+    // Export public key as SPKI DER bytes
+    publicKey = new Uint8Array(
+      await globalThis.crypto.subtle.exportKey("spki", keyPair.publicKey),
+    );
   } else {
     throw new AuthError("AUTH_CONFIG", `Unsupported algorithm: ${alg}`);
   }
@@ -448,10 +545,8 @@ export async function jwksPublish(options: {
 }): Promise<JWKS> {
   const { storage, alg = "EdDSA" } = options;
 
-  if (alg !== "EdDSA") {
+  if (alg === "HS256") {
     // HS256 keys are symmetric and MUST NOT be exposed.
-    // For HS256 JWKS, just return an empty set. Consumers should distribute
-    // the public key material through a different channel if needed.
     return { keys: [] };
   }
 
@@ -461,14 +556,36 @@ export async function jwksPublish(options: {
   for (const kid of keyIds) {
     const stored = await storage.getKeyById(kid);
     if (!stored || !stored.publicKey) continue;
-    keys.push({
-      kty: "OKP",
-      kid,
-      alg: "EdDSA",
-      use: "sig",
-      crv: "Ed25519",
-      x: base64UrlEncode(stored.publicKey),
-    });
+
+    if (alg === "EdDSA") {
+      keys.push({
+        kty: "OKP",
+        kid,
+        alg: "EdDSA",
+        use: "sig",
+        crv: "Ed25519",
+        x: base64UrlEncode(stored.publicKey),
+      });
+    } else if (alg === "RS256") {
+      // For RSA keys, we need to import the SPKI public key, then
+      // export to JWK format to extract n and e.
+      const cryptoKey = await globalThis.crypto.subtle.importKey(
+        "spki",
+        stored.publicKey as BufferSource,
+        { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+        true,
+        ["verify"],
+      );
+      const jwk = await globalThis.crypto.subtle.exportKey("jwk", cryptoKey);
+      keys.push({
+        kty: "RSA",
+        kid,
+        alg: "RS256",
+        use: "sig",
+        n: jwk.n,
+        e: jwk.e,
+      });
+    }
   }
 
   return { keys };
