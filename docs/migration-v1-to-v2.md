@@ -56,7 +56,7 @@ try {
 }
 
 // v2
-import { OCAISAbortError, OCAISTimeoutError } from "@opita/ocais";
+import { OCAISAbortError, OCAISTimeoutError } from "@opitacode/ocais";
 
 try {
   for await (const chunk of streamText(...)) { ... }
@@ -69,7 +69,7 @@ try {
 Or catch all OCAIS errors with the base class:
 
 ```typescript
-import { OCAISError } from "@opita/ocais";
+import { OCAISError } from "@opitacode/ocais";
 
 try { ... } catch (err) {
   if (err instanceof OCAISError) {
@@ -117,7 +117,7 @@ await streamText({
 If you were parsing usage from stream chunks, the shape is now a public type:
 
 ```typescript
-import type { Usage } from "@opita/ocais";
+import type { Usage } from "@opitacode/ocais";
 
 function trackUsage(usage: Usage | undefined) {
   if (!usage) return;
@@ -136,4 +136,4 @@ for await (const chunk of streamText(..., { onComplete: (ctx) => trackUsage(ctx.
 - [ ] If you have `try/catch` blocks, update them to use `instanceof OCAISXxxError`
 - [ ] If you rely on `maxSteps: 1` default, add `maxSteps: 1` explicitly
 - [ ] If you implement a custom `Provider`, pass `req.signal` to `fetch()`
-- [ ] Update your package.json to `"@opita/ocais": "github:Opita-Code/ocais#v2.0.0"` (when tagged) or `^2.0.0` once published to npm
+- [ ] Update your package.json to `"@opitacode/ocais": "github:Opita-Code/ocais#v2.0.0"` (when tagged) or `^2.0.0` once published to npm

@@ -30,7 +30,7 @@ npm install github:Opita-Code/ocais#master
 ### Streaming with DeepSeek
 
 ```typescript
-import { streamText, openai } from "@opita/ocais";
+import { streamText, openai } from "@opitacode/ocais";
 
 const stream = streamText({
   provider: openai({
@@ -50,7 +50,7 @@ for await (const chunk of stream) {
 ### Streaming with Google Gemini
 
 ```typescript
-import { streamText, google } from "@opita/ocais";
+import { streamText, google } from "@opitacode/ocais";
 
 const stream = streamText({
   provider: google({ apiKey: process.env.API_GOOGLE_CLOUD! }),
@@ -62,7 +62,7 @@ const stream = streamText({
 ### In AWS Lambda (Function URL + SSE)
 
 ```typescript
-import { streamText, openai, createSSEWriter } from "@opita/ocais";
+import { streamText, openai, createSSEWriter } from "@opitacode/ocais";
 
 export const handler = awslambda.streamifyResponse(
   async (event, responseStream) => {
@@ -90,7 +90,7 @@ export const handler = awslambda.streamifyResponse(
 ### Server-side tool execution (multi-step)
 
 ```typescript
-import { streamText, openai } from "@opita/ocais";
+import { streamText, openai } from "@opitacode/ocais";
 
 const stream = streamText({
   provider: openai({ apiKey, baseURL: "https://api.deepseek.com" }),
@@ -128,7 +128,7 @@ for await (const chunk of stream) {
 ### Structured output (Zod)
 
 ```typescript
-import { generateObject, google } from "@opita/ocais";
+import { generateObject, google } from "@opitacode/ocais";
 import { z } from "zod";
 
 const { object } = await generateObject({
@@ -148,7 +148,7 @@ const { object } = await generateObject({
 Use standard `AbortSignal` and/or `timeoutMs`. Both throw typed errors.
 
 ```typescript
-import { streamText, OCAISAbortError, OCAISTimeoutError } from "@opita/ocais";
+import { streamText, OCAISAbortError, OCAISTimeoutError } from "@opitacode/ocais";
 
 // AbortSignal (e.g. from a request)
 const controller = new AbortController();

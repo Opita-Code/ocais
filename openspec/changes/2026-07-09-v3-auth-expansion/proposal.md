@@ -23,7 +23,7 @@ OCAIS v2.0.0 (released 2026-06-20) is a successful AI streaming SDK with 15KB bu
 
 ### v3.0.0 adds a new `auth` capability to OCAIS
 
-**Public API surface** (all in `@opita/ocais/auth`):
+**Public API surface** (all in `@opitacode/ocais/auth`):
 
 ```typescript
 import {
@@ -43,7 +43,7 @@ import {
   type MagicLinkRequest, type JWTClaims, type PasswordHash, type CookieValue,
   // Storage adapter
   type AuthStorage,
-} from "@opita/ocais/auth";
+} from "@opitacode/ocais/auth";
 ```
 
 ### Principles (same as v2.0)

@@ -5,7 +5,7 @@
  * tokens) using RS256 with RSA keys from Cognito's public JWKS endpoint.
  *
  * Usage:
- *   import { verifyCognitoJWT } from "@opita/ocais/auth/cognito";
+ *   import { verifyCognitoJWT } from "@opitacode/ocais/auth/cognito";
  *
  *   const claims = await verifyCognitoJWT(token, {
  *     userPoolId: "us-east-1_abc123",

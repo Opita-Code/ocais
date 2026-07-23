@@ -37,8 +37,8 @@ src/auth/
 ### magic-link.ts
 
 ```typescript
-import { magicLinkRequest, magicLinkVerify } from "@opita/ocais/auth";
-import type { AuthStorage, MagicLinkPayload } from "@opita/ocais/auth";
+import { magicLinkRequest, magicLinkVerify } from "@opitacode/ocais/auth";
+import type { AuthStorage, MagicLinkPayload } from "@opitacode/ocais/auth";
 
 const storage: AuthStorage = /* user implements */;
 
@@ -63,8 +63,8 @@ const payload = await magicLinkVerify(
 ### jwt.ts
 
 ```typescript
-import { signJWT, verifyJWT, jwksPublish, rotateKeys } from "@opita/ocais/auth";
-import type { AuthStorage, JWTClaims } from "@opita/ocais/auth";
+import { signJWT, verifyJWT, jwksPublish, rotateKeys } from "@opitacode/ocais/auth";
+import type { AuthStorage, JWTClaims } from "@opitacode/ocais/auth";
 
 const storage: AuthStorage = /* user implements */;
 
@@ -99,7 +99,7 @@ const jwks = await jwksPublish({ storage, alg: "EdDSA" });
 ### cookie.ts
 
 ```typescript
-import { cookieSign, cookieVerify } from "@opita/ocais/auth";
+import { cookieSign, cookieVerify } from "@opitacode/ocais/auth";
 
 const cookie = await cookieSign(
   { sub: "user-123", role: "user" },
@@ -118,7 +118,7 @@ const value = await cookieVerify(cookie, { secret: process.env.COOKIE_SECRET! })
 ### password.ts
 
 ```typescript
-import { passwordHash, passwordVerify } from "@opita/ocais/auth";
+import { passwordHash, passwordVerify } from "@opitacode/ocais/auth";
 
 const hash = await passwordHash("hunter2");
 // → $argon2id$v=19$m=19456,t=2,p=1$<salt>$<hash>
@@ -131,7 +131,7 @@ const isValid = await passwordVerify(hash, "hunter2");
 ### rate-limit.ts
 
 ```typescript
-import { rateLimit, createRateLimiter } from "@opita/ocais/auth";
+import { rateLimit, createRateLimiter } from "@opitacode/ocais/auth";
 
 const result = await rateLimit({
   key: `magic-link:${emailHash}`,
@@ -148,7 +148,7 @@ const limiter = createRateLimiter({ max: 100, windowMs: 60_000 });
 ### errors.ts
 
 ```typescript
-import { AuthError, AuthTokenExpiredError, AuthTokenInvalidError, AuthRateLimitError, AuthStorageError } from "@opita/ocais/auth";
+import { AuthError, AuthTokenExpiredError, AuthTokenInvalidError, AuthRateLimitError, AuthStorageError } from "@opitacode/ocais/auth";
 
 if (err instanceof AuthTokenExpiredError) {
   // token's exp is in the past
@@ -165,7 +165,7 @@ if (err instanceof AuthRateLimitError) {
 ## Storage adapter (consumer-implemented)
 
 ```typescript
-import type { AuthStorage } from "@opita/ocais/auth";
+import type { AuthStorage } from "@opitacode/ocais/auth";
 
 // DDB adapter example
 export const storage: AuthStorage = {
@@ -199,7 +199,7 @@ export const storage: AuthStorage = {
 };
 ```
 
-OCAIS does NOT ship a DDB adapter in v3.0 MVP. Consumers write their own. (Future: `@opita/ocais/storage-ddb` peer package.)
+OCAIS does NOT ship a DDB adapter in v3.0 MVP. Consumers write their own. (Future: `@opitacode/ocais/storage-ddb` peer package.)
 
 ## API surface (exports in package.json)
 
@@ -250,7 +250,7 @@ OCAIS does NOT ship a DDB adapter in v3.0 MVP. Consumers write their own. (Futur
 ## Migration path (Phase 2)
 
 **For opita-account-ui (Cognito consumer)**:
-1. `npm install @opita/ocais@^3.0.0`
+1. `npm install @opitacode/ocais@^3.0.0`
 2. Implement DDB adapter (`storage.ts`)
 3. Replace `backend/auth/core.ts:requestMagicLink` with `magicLinkRequest`
 4. Replace `backend/auth/core.ts:verifyAuthChallenge` with `magicLinkVerify` + `signJWT`
@@ -260,7 +260,7 @@ OCAIS does NOT ship a DDB adapter in v3.0 MVP. Consumers write their own. (Futur
 8. Camila magic-link E2E test passes
 
 **For opita-trabajos (API Gateway Authorizer consumer)**:
-1. `npm install @opita/ocais@^3.0.0`
+1. `npm install @opitacode/ocais@^3.0.0`
 2. Remove Lambda Authorizer from API Gateway routes
 3. Add `verifyJWT(authorizationHeader)` to each protected route's Lambda handler
 4. Frontend: change `lib/api.ts` to send `Authorization: Bearer <jwt>` instead of relying on opita_sso cookie
@@ -278,4 +278,4 @@ OCAIS does NOT ship a DDB adapter in v3.0 MVP. Consumers write their own. (Futur
 - Anomaly detection (signin velocity, geo-fencing)
 - Email/SMS sending (consumer's responsibility)
 - Frontend components (OCAIS is server-side only)
-- DDB adapter (peer package `@opita/ocais/storage-ddb`)
+- DDB adapter (peer package `@opitacode/ocais/storage-ddb`)

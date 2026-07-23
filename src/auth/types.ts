@@ -1,7 +1,7 @@
 /**
  * OCAIS Auth — shared types
  *
- * All types are exported via `@opita/ocais/auth`. Consumers implement the
+ * All types are exported via `@opitacode/ocais/auth`. Consumers implement the
  * `AuthStorage` interface to plug in their backend (DDB, Redis, etc.).
  */
 

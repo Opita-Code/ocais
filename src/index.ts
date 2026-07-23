@@ -69,6 +69,6 @@ export type { OpenAIProviderOptions } from "./providers/openai-compatible.js";
 export type { GoogleProviderOptions } from "./providers/google.js";
 
 // v3.0 — Auth primitives (see `./auth/` for details)
-// Note: consumers should import from "@opita/ocais/auth" directly, not from the root.
+// Note: consumers should import from "@opitacode/ocais/auth" directly, not from the root.
 // The root re-export is for convenience and to surface the auth module in the package.
 export * as auth from "./auth/index.js";

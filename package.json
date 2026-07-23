@@ -1,5 +1,5 @@
 {
-  "name": "@opita/ocais",
+  "name": "@opitacode/ocais",
   "version": "3.0.0",
   "description": "OCAIS — Opita Code AI Stream. Lightweight AI streaming SDK for AWS Lambda. Zero deps, TypeScript-first, provider-agnostic.",
   "type": "module",
