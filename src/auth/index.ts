@@ -1,7 +1,7 @@
 /**
  * OCAIS Auth — public API
  *
- * Import from `@opita/ocais/auth`:
+ * Import from `@opitacode/ocais/auth`:
  *
  *   import {
  *     magicLinkRequest, magicLinkVerify,
@@ -9,12 +9,12 @@
  *     cookieSign, cookieVerify,
  *     passwordHash, passwordVerify,
  *     rateLimit, createRateLimiter,
- *   } from "@opita/ocais/auth";
+ *   } from "@opitacode/ocais/auth";
  *
  *   import type {
  *     AuthStorage, JWTClaims, MagicLinkPayload, CookieAttributes,
  *     RateLimitOptions, Argon2idParams, JWTAlgorithm, JWKS, JWK,
- *   } from "@opita/ocais/auth";
+ *   } from "@opitacode/ocais/auth";
  */
 
 // Errors

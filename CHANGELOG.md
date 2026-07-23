@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Auth capability** via new `@opita/ocais/auth` subpath. Five primitives, storage-agnostic, zero runtime deps, MIT.
+- **Auth capability** via new `@opitacode/ocais/auth` subpath. Five primitives, storage-agnostic, zero runtime deps, MIT.
   - **`magicLinkRequest` / `magicLinkVerify`**: single-use, atomic-delete, 32-byte tokens, per-email rate limit. OWASP ASVS V2.5/V2.7 covered.
   - **`signJWT` / `verifyJWT`**: HS256 (zero-dep) and EdDSA (optional `@noble/ed25519` peer-dep). RFC 7519/7515. Strict alg allow-list (rejects `none`). `exp`/`nbf`/`iss`/`aud` validation. JWKS publish.
   - **`rotateKeys`**: key rotation with 24h grace period for in-flight tokens.
@@ -46,11 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Existing v2.x consumers: no breaking changes. To adopt auth:
 
 ```bash
-npm install @opita/ocais@^3.0.0
+npm install @opitacode/ocais@^3.0.0
 ```
 
 ```typescript
-import { magicLinkRequest, signJWT, verifyJWT } from "@opita/ocais/auth";
+import { magicLinkRequest, signJWT, verifyJWT } from "@opitacode/ocais/auth";
 ```
 
 ## [2.0.0] - 2026-06-20

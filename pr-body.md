@@ -7,7 +7,7 @@ This update brings OCAIS to a **general production-ready state**, without coupli
 ### 🔴 Cancellation (standard web API)
 
 ```typescript
-import { streamText, OCAISAbortError, OCAISTimeoutError } from "@opita/ocais";
+import { streamText, OCAISAbortError, OCAISTimeoutError } from "@opitacode/ocais";
 
 const controller = new AbortController();
 req.on("close", () => controller.abort());

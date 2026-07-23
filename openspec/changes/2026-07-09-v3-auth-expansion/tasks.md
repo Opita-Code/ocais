@@ -62,7 +62,7 @@
 ## Phase 2 — Migration (sprint +1)
 
 ### opita-account-ui migration
-- [ ] Add `@opita/ocais` (>=3.0.0) to dependencies
+- [ ] Add `@opitacode/ocais` (>=3.0.0) to dependencies
 - [ ] Implement `DDBAuthStorage` adapter
 - [ ] Replace `backend/auth/core.ts` magic-link handler with OCAIS primitives
 - [ ] Replace `backend/auth/middleware/cookie-support.ts` with OCAIS cookie primitive
@@ -72,7 +72,7 @@
 
 ### opita-trabajos migration
 - [ ] Remove Lambda Authorizer from API Gateway routes
-- [ ] Add `@opita/ocais` (>=3.0.0) to TrabajosApiFunction
+- [ ] Add `@opitacode/ocais` (>=3.0.0) to TrabajosApiFunction
 - [ ] Add `verifyJWT(authorizationHeader)` to each protected route's handler
 - [ ] Frontend: change `lib/api.ts` to send `Authorization: Bearer <jwt>` instead of relying on opita_sso cookie
 - [ ] Deploy to DEV, run all 7 BUG-17 E2E tests (should pass)
@@ -138,5 +138,5 @@ Phase 0 (1-2 days) → Phase 1 (1 sprint) → Phase 2 (1 sprint) → Phase 3 (1 
 
 - None for Phase 0 (pure research)
 - Phase 1 depends on Phase 0 operator validation
-- Phase 2 depends on Phase 1 npm publish (`@opita/ocais@3.0.0`)
+- Phase 2 depends on Phase 1 npm publish (`@opitacode/ocais@3.0.0`)
 - Phase 3 depends on Phase 2 PROD validation (Camila working in PROD)
