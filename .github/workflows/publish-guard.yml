@@ -35,9 +35,12 @@ jobs:
         run: npm pack
 
       - name: Verify dist/ in tarball
+        # NOTE: glob must match 'name' in package.json (npm pack uses that name
+        # for the tarball, e.g. opitacode-ocais-3.0.0.tgz). When the package
+        # is renamed, update both globs here.
         run: |
           set -e
-          TGZ=$(ls opita-ocais-*.tgz | head -n 1)
+          TGZ=$(ls opitacode-ocais-*.tgz | head -n 1)
           echo "Inspecting $TGZ"
           tar -tzf "$TGZ"
           if ! tar -tzf "$TGZ" | grep -q "package/dist/index.js"; then
@@ -62,5 +65,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ocais-tarball
-          path: opita-ocais-*.tgz
+          path: opitacode-ocais-*.tgz
           if-no-files-found: error
