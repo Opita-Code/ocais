@@ -5,6 +5,23 @@ All notable changes to OCAIS will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2026-07-23
+
+### Added
+
+- **`docs/peer-deps.md`**: full table of optional peer dependencies with install commands and use cases.
+
+### Changed
+
+- **`package.json`**: `zod` moved from `peerDependencies` (optional) to `dependencies` (direct). `generateObject()` always requires Zod; making it a direct dependency means consumers get the right install behavior without manual intervention. Hash, signature, or runtime behavior of OCAIS code unchanged.
+- **README**: install path updated from `npm install github:Opita-Code/ocais#master` to `npm install @opitacode/ocais` (post-publish). Added a "Peer dependencies" table after Quickstart. Removed a stale mention of `streamTextWithEvents` (not yet implemented).
+
+### Not changed
+
+- Public TypeScript exports: identical surface to 3.0.0.
+- Runtime behavior: identical to 3.0.0.
+- Test command output for the 11 existing test files: identical.
+
 ## [3.0.0] - 2026-07-09
 
 ### Added

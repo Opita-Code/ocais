@@ -1,6 +1,6 @@
 {
   "name": "@opitacode/ocais",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "OCAIS — Opita Code AI Stream. Lightweight AI streaming SDK for AWS Lambda. Zero deps, TypeScript-first, provider-agnostic.",
   "type": "module",
   "main": "./dist/index.js",
@@ -73,15 +73,14 @@
     "typescript": "^5.7.0",
     "zod": "^3.23.0"
   },
+  "dependencies": {
+    "zod": "^3.23.0"
+  },
   "peerDependencies": {
-    "zod": ">=3.0.0",
     "@noble/ed25519": ">=2.0.0",
     "@node-rs/argon2": ">=2.0.0"
   },
   "peerDependenciesMeta": {
-    "zod": {
-      "optional": true
-    },
     "@noble/ed25519": {
       "optional": true
     },

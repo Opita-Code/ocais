@@ -21,9 +21,20 @@ Other SDKs (Vercel AI SDK, LangChain) are designed for fullstack web frameworks.
 ## Install
 
 ```bash
-# From GitHub (no npm registry yet)
-npm install github:Opita-Code/ocais#master
+npm install @opitacode/ocais
 ```
+
+### Peer dependencies
+
+Some optional features require installing peer-dependencies. None are required for the core streaming API.
+
+| Feature | Package | Install |
+|---------|---------|---------|
+| `generateObject()` (structured output via Zod) | `zod` | Included as a direct dependency in 3.0.1+ |
+| `signJWT()` / `verifyJWT()` with `algorithm: "EdDSA"` | `@noble/ed25519` | `npm install @noble/ed25519` |
+| `passwordHash()` / `passwordVerify()` / `needsRehash()` | `@node-rs/argon2` | `npm install @node-rs/argon2` |
+
+The provider modules (`openai()`, `google()`) and core streaming (`streamText()`) need only `fetch`, available in Node 20+. See [`docs/peer-deps.md`](./docs/peer-deps.md) for the full table.
 
 ## Quick start
 
@@ -210,7 +221,7 @@ for await (const chunk of streamText({
 }
 ```
 
-For a richer event-based API (subscribe to `text`, `tool-call`, `complete`, etc.), use `streamTextWithEvents` (planned for v2.1).
+The lifecycle hooks (`onStart`, `onComplete`, `onError`, `onAbort`) above are the canonical observability API.
 
 ## Error hierarchy
 
